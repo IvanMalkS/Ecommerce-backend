@@ -1,92 +1,60 @@
-//TEST VERSION
-const Cart = require('../models/cartModel');
-const catchAsyncErrors = require('./../utils/catchAsyncErrors');
+const User = require('./../models/usersModel');
+const CatchAsyncErrors = require('./../utils/catchAsyncErrors');
 
-exports.addToCart = catchAsyncErrors(async (req, res) => {
-  const { productId, quantity } = req.body;
-  const userId = req.user._id;
-
-  // Найти корзину пользователя
-  let cart = await Cart.findOne({ user: userId });
-
-  // Если корзины нет, создать новую
-  if (!cart) {
-    cart = new Cart({
-      user: userId,
-      items: [],
-    });
-  }
-
-  // Найти товар в корзине, если он там есть
-  const existingItem = cart.items.find(
-    (item) => item.product.toString() === productId,
-  );
-
-  // Если товар уже в корзине, увеличить количество
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    // Добавить новый товар в корзину
-    cart.items.push({ product: productId, quantity });
-  }
-
-  // Сохранить обновленную корзину
-  await cart.save();
-
+exports.getCart = CatchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user._id).select('cart');
   res.status(200).json({
     status: 'success',
-    message: 'Product added to cart successfully.',
+    data: {
+      user,
+    },
   });
 });
 
-exports.removeFromCart = async (req, res) => {
-  const userId = req.body.userid;
-  const { productId } = req.params;
+exports.addToCart = CatchAsyncErrors(async (req, res, next) => {
+  const productID = req.params.productId;
+  const user = await User.findById(req.user._id).select('cart');
 
-  // Find the cart by the user ID
-  const cart = await Cart.findById(userId).exec();
-  if (!cart) {
-    return res.status(404).json({
-      status: 'fail',
-      message: 'No cart found for this user.',
-    });
-  }
+  // Check for existing cart
+  const itemIndex = user.cart.findIndex((item) => item.productID == productID);
 
-  // Remove the item from the cart
-  const itemIndex = cart.items.findIndex(
-    (item) => item.product.toString() === productId,
-  );
-  if (itemIndex >= 0) {
-    cart.items.splice(itemIndex, 1);
-    await cart.save();
-
-    return res.status(200).json({
-      status: 'success',
-      message: 'Item removed from cart.',
-    });
+  if (itemIndex > -1) {
+    // if product already on cart change quantity
+    user.cart[itemIndex].quantity += 1;
   } else {
-    return res.status(404).json({
-      status: 'fail',
-      message: 'Item not found in cart.',
-    });
-  }
-};
-
-exports.getCartItems = catchAsyncErrors(async (req, res) => {
-  const userId = req.user._id;
-
-  // find cart
-  const cart = await Cart.findOne({ user: userId });
-
-  if (!cart) {
-    return res.status(404).json({
-      status: 'fail',
-      message: 'No cart found for this user.',
-    });
+    user.cart.push({ productID: productID, quantity: 1 });
   }
 
+  await user.save();
   res.status(200).json({
     status: 'success',
-    cart: cart.items,
+    data: {
+      user,
+    },
+  });
+});
+
+exports.deleteFromCart = CatchAsyncErrors(async (req, res, next) => {
+  const productID = req.params.productId;
+  const user = await User.findById(req.user._id).select('cart');
+
+  // Check for existing cart
+  const itemIndex = user.cart.findIndex((item) => item.productID == productID);
+
+  if (itemIndex > -1) {
+    // if product already on cart change quantity
+    if (user.cart[itemIndex].quantity > 1) {
+      user.cart[itemIndex].quantity -= 1;
+    } else {
+      user.cart.splice({ productID: productID, quantity: 1 }, 1);
+    }
+  }
+
+  await user.save();
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user,
+    },
   });
 });

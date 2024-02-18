@@ -14,6 +14,7 @@ const hpp = require('hpp');
 const reviewsRouter = require('./routes/reviewRoutes');
 const path = require('path');
 const cartRoutes = require('./routes/cartRouts');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -24,6 +25,9 @@ app.set('index', path.join(__dirname, 'views'));
 
 // security middleware
 app.use(helmet());
+
+// to send normal cookies
+app.use(cookieParser());
 
 // Enable CORS for all routes
 app.use(cors());
@@ -52,8 +56,7 @@ app.use(
 );
 
 // To log requests in console
-if(process.env.NODE_ENV !== "product") app.use(morgan('dev'));
-
+if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
 
 // rate limiting
 const limiter = rateLimit({
@@ -71,8 +74,7 @@ app.get('/', (req, res) => {
 app.use('/api/products', productsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/reviews', reviewsRouter);
-// TEST ROUTE!!!
-//app.use('/api/cart', cartRoutes);
+app.use('/api/cart', cartRoutes);
 
 //catching all not valid pages
 app.all('*', (req, res, next) => {

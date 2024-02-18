@@ -73,6 +73,21 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   location: [String],
+  cart: {
+    type: [
+      {
+        productID: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+        },
+        quantity: {
+          type: Number,
+          default: 1,
+        },
+      },
+    ],
+    select: false,
+  },
 });
 
 userSchema.pre('save', async function (next) {
@@ -122,6 +137,8 @@ userSchema.methods.matchPassword = async function (
 ) {
   return await bcrypt.compare(candidatePassword, userPassword);
 };
+
+userSchema.methods.addToCart = function (productsInCart) {};
 
 const User = mongoose.model('User', userSchema);
 

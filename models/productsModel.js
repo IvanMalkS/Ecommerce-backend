@@ -4,10 +4,10 @@ const productsSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Title is required'],
+      required: [true, 'Name is required'],
       trim: true,
       maxLength: 40,
-      unique: [true, 'Title must be unique'],
+      unique: [true, 'Name must be unique'],
     },
     price: {
       type: Number,
